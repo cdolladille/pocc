@@ -1,5 +1,3 @@
-# pocc (development version)
-
 # pocc 0.1.0
 
 ## Setting the stage
