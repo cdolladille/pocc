@@ -1,0 +1,472 @@
+---
+title: "forest"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{forest}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(pocc)
+library(vigicaen)
+```
+
+The help of `forest_charles` was progressively growing VERY big, so I thought
+it would be better to create a dedicated vignette.
+
+Lets first set up a data.frame that can be used to draw forest_plots with
+`forest_charles`.
+
+## Create and use a data.frame
+
+```{r set_df}
+
+df <-
+   dplyr::tibble(
+     var = c("drug1", "drug2", "header", "drug3"),
+     e1 = c(1.2, 0.8, NA, 5.0),
+     e1_lci = c(0.9, 0.7, NA, 2.3),
+     e1_uci = c(1.5, 0.9, NA, 7.8),
+     col1 = vigicaen::cff(e1,
+                         low_ci = e1_lci,
+                         up_ci = e1_uci,
+                         method = "num_ci",
+                         dig = 1),
+    e1_size = c(1, 10, NA, 3),
+    e2_size = c(10, 1, NA, 3),
+     color = ifelse(e1_lci > 1, "green", "red"),
+     is_header = ifelse(
+       is.na(e1),
+       2,
+       1),
+     e2 = c(0.9, 0.5, NA, 0.8),
+     e2_lci = c(0.8, 0.2, NA, 0.2),
+     e2_uci = c(1.0, 0.8, NA, 1.4),
+     e2_color = ifelse(e2_uci < 1, "blue", "black"),
+     tiles_guide = c(1, 0, 0, 1)
+   )
+```
+
+This data.frame can be used directly into the function.
+
+```{r draw_from_df}
+
+forest_charles(
+   path_data = df,
+   cols = "var",
+   cols_pos = c(1),
+   est_1 = "e1",
+   est_1_low_ci = "e1_lci",
+   est_1_up_ci = "e1_uci"
+ )
+```
+
+But, if you prefer to use a csv export, it is also possible.
+
+```{r draw_from_csv}
+
+dir <- tempdir()
+
+write.csv2(df, paste0(dir, "/", "test_df_for_forest_charles.csv"),
+            row.names = FALSE)
+
+
+forest_charles(
+   path_data = paste0(dir, "/", "test_df_for_forest_charles.csv"),
+   cols = "var",
+   cols_pos = c(1),
+
+   est_1 = "e1",
+   est_1_low_ci = "e1_lci",
+   est_1_up_ci = "e1_uci"
+ )
+```
+
+## Required arguments
+
+There are a few required arguments:
+
+-    `cols` and `cols_pos`
+-    `est_1`, `est_1_low_ci`, `est_1_up_ci`
+
+## Overall plot limits
+
+The overall plot limits can be extended with `plot_lims`.
+
+A wider *overall* plot will result on a smallest *forest* plot.
+
+```{r param_plot_lims}
+forest_charles(
+   path_data = df,
+   cols = "var",
+   cols_pos = c(1),
+   est_1 = "e1",
+   est_1_low_ci = "e1_lci",
+   est_1_up_ci = "e1_uci",
+   plot_lims = c(0, 50)
+ )
+```
+
+## Graphic position
+
+Graphic position is controlled with argument `graphic1distance`.
+
+```{r g1_position}
+forest_charles(
+   path_data = df,
+   cols = "var",
+   cols_pos = c(1),
+   est_1 = "e1",
+   est_1_low_ci = "e1_lci",
+   est_1_up_ci = "e1_uci",
+   graphic1distance = 10
+ )
+```
+
+> `graphic1distance` should always be smaller than `max(plot_lims)`.
+
+## Export the plot to vizualize definitive ratios
+
+There will always be a difference between what you see in the R viewer and the
+exported figure. I recommend you save your forest plot very early in its 
+development, to be sure that the final figure will keep the desire ratios between
+plots, text, etc.
+
+The best way to do so is to save as a pdf file and view it from Google Chrome 
+(there's a specific reason for choosing Chrome here: it doesn't deny R access to the plot).
+
+```{r gg_export, eval=FALSE}
+
+g1 <-
+  forest_charles(
+   path_data = df,
+   cols = "var",
+   cols_pos = c(1),
+   est_1 = "e1",
+   est_1_low_ci = "e1_lci",
+   est_1_up_ci = "e1_uci",
+   graphic1distance = 10
+ )
+
+ggsave(filename = "a_fine_place", plot = g1,
+       width = 4,
+       height = 4
+)
+
+```
+
+
+## hjust of cols
+
+Cols justification can be changed with `cols_hjust`:
+
+-    `cols_hjust` = 0 is left justified ("Text from here     ")
+-    `cols_hjust` = 0.5 is centered ("   Text in the middle  ")
+-    `cols_hjust` = 1 is right justified ("     Text from here")
+
+```{r param_hjust}
+
+forest_charles(
+   path_data = df,
+   cols = "var",
+   cols_pos = c(1),
+   cols_hjust = 0,
+
+   est_1 = "e1",
+   est_1_low_ci = "e1_lci",
+   est_1_up_ci = "e1_uci"
+ )
+```
+
+## Box color
+
+Argument `est_1_color` is the name of a column from your data.frame.
+
+```{r param_est_1_color}
+
+forest_charles(
+   path_data = df,
+   cols = "var",
+   cols_pos = c(1),
+   cols_hjust = 0,
+
+   est_1 = "e1",
+   est_1_low_ci = "e1_lci",
+   est_1_up_ci = "e1_uci",
+   
+   est_1_color = "color"
+ )
+```
+
+## Box size
+
+Box size can be changed if your data.frame has a numeric column.
+
+```{r param_size}
+ forest_charles(
+   path_data = df,
+   cols = "var",
+   cols_pos = c(1),
+
+   est_1 = "e1",
+   est_1_low_ci = "e1_lci",
+   est_1_up_ci = "e1_uci",
+
+   est_1_size = "e1_size"
+ )
+```
+
+Box size is capped from size 1 to size 3, and you can change these limits
+with argument `size_range`.
+
+```{r param_size_range}
+
+forest_charles(
+   path_data = df,
+   cols = "var",
+   cols_pos = c(1),
+
+   est_1 = "e1",
+   est_1_low_ci = "e1_lci",
+   est_1_up_ci = "e1_uci",
+
+   est_1_size = "e1_size",
+   size_range = c(1, 5)
+ )
+```
+
+## Names of plotted columns
+
+Argument cols_name let you customize headers of plotted columns.
+
+```{r param_cols_name}
+
+  forest_charles(
+   path_data = df,
+   cols = "var",
+   cols_name = "Nice new name",
+   cols_pos = c(2),
+
+   est_1 = "e1",
+   est_1_low_ci = "e1_lci",
+   est_1_up_ci = "e1_uci"
+ )
+```
+
+## Plot multiple columns
+
+You can display as many columns as you want in `cols`. Just remember to set `cols_pos`.
+
+```{r param_many_cols}
+
+ forest_charles(
+ path_data = df,
+ cols = c("var", "col1"),
+ cols_pos = c(1, 5),
+
+ est_1 = "e1",
+ est_1_low_ci = "e1_lci",
+ est_1_up_ci = "e1_uci"
+ )
+```
+
+## Limits of forest plot
+
+Limits of the forest plot are dependent on `ticks`.
+
+```{r param_x_ticks}
+forest_charles(
+ path_data = df,
+ cols = c("var"),
+ cols_pos = c(1),
+
+ est_1 = "e1",
+ est_1_low_ci = "e1_lci",
+ est_1_up_ci = "e1_uci",
+ ticks = c(0.1, 0.5, 1, 2, 5, 6)
+ )
+```
+
+Here, you can see that if one of your values for `est_1_low_ci` or `est_1_up_ci` is
+larger than `max(ticks)` (or lower than `min(ticks)`), it will be cut and an arrow
+will be displayed.
+
+> If `est_1` is out of `ticks`, it is not plotted
+
+```{r param_est_1_remove}
+ forest_charles(
+ path_data = df,
+ cols = c("var"),
+ cols_pos = c(1),
+
+ est_1 = "e1",
+ est_1_low_ci = "e1_lci",
+ est_1_up_ci = "e1_uci",
+ ticks = c(0.1, 0.5, 1, 2, 4)
+
+ )
+```
+
+## Plot 2 graphics
+
+You can supply data for a second graphic. It has its own `graphic2distance` parameter.
+
+```{r g2}
+
+forest_charles(
+ path_data = df,
+ cols = c("var"),
+ cols_pos = c(1),
+
+ est_1 = "e1",
+ est_1_low_ci = "e1_lci",
+ est_1_up_ci = "e1_uci",
+ graphic1distance = 10,
+
+ est_2 = "e2",
+ est_2_low_ci = "e2_lci",
+ est_2_up_ci = "e2_uci",
+ graphic2distance = 20
+ )
+```
+ 
+Size and color of the 2nd graphic are independent of those of the first graphic. 
+
+```{r g2_params}
+
+forest_charles(
+ path_data = df,
+ cols = c("var"),
+ cols_pos = c(1),
+
+ est_1 = "e1",
+ est_1_low_ci = "e1_lci",
+ est_1_up_ci = "e1_uci",
+ 
+ est_1_color = "color",
+ est_1_size = "e1_size",
+ 
+ graphic1distance = 10,
+
+ est_2 = "e2",
+ est_2_low_ci = "e2_lci",
+ est_2_up_ci = "e2_uci",
+ 
+ est_2_color = "e2_color",
+ est_2_size = "e2_size",
+ 
+ graphic2distance = 20
+ )
+```
+
+## Columns with customized font
+
+Some lines can be printed in bold, italic. You need to provide a column that 
+identifies the desired font.
+
+```{r param_cfont}
+
+ forest_charles(
+   path_data = df,
+   cols = c("var", "col1"),
+   cols_pos = c(1, 5),
+   cols_hjust = c(0.5, 0.5),
+   cols_custom = "var",
+   cols_custom_fontface = "is_header",
+
+   est_1_color = "color",
+
+   est_1 = "e1",
+   est_1_low_ci = "e1_lci",
+   est_1_up_ci = "e1_uci",
+   graphic1distance = 10)
+```
+
+## Add tiles
+
+Use a column with 0 and 1. Each line with a 1 will have a tile in between the
+panel background and the boxes.
+
+```{r param_tile}
+
+forest_charles(
+   path_data = df,
+   cols = "var",
+   cols_pos = c(2),
+
+   est_1 = "e1",
+   est_1_low_ci = "e1_lci",
+   est_1_up_ci = "e1_uci",
+
+   tiles = "tiles_guide"
+ )
+```
+
+Arguments `tiles_height`, and `tiles_color` control the tiles
+(altogether).
+
+```{r param_tile_hca}
+
+forest_charles(
+   path_data = df,
+   cols = "var",
+   cols_pos = c(2),
+
+   est_1 = "e1",
+   est_1_low_ci = "e1_lci",
+   est_1_up_ci = "e1_uci",
+
+   tiles = "tiles_guide",
+   tiles_height = 0.2,
+   tiles_color = "cornflowerblue"
+ )
+```
+
+## Forest plot panel background color
+
+There is no alpha controller here, but this panel is *behind* the plot. That
+means it will not shade your box color.
+
+```{r param_g1_panelcolor}
+ forest_charles(
+   path_data = df,
+   cols = "var",
+   cols_pos = c(1),
+
+   est_1 = "e1",
+   est_1_low_ci = "e1_lci",
+   est_1_up_ci = "e1_uci",
+
+   g1_panelcolor = "cornflowerblue"
+
+ )
+```
+
+
+## Change box shape
+
+Very short reminder : 16 is circle, 15 is square. Others can be found on the
+ggplot2 cheatsheet.
+
+```{r param_g1_boxshape}
+ forest_charles(
+   path_data = df,
+   cols = "var",
+   cols_pos = c(1),
+
+   est_1 = "e1",
+   est_1_low_ci = "e1_lci",
+   est_1_up_ci = "e1_uci",
+
+   box_shape = 15
+
+ )
+```
